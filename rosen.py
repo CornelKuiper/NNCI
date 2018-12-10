@@ -16,7 +16,7 @@ class Network(object):
         self.error = []
 
     def train_old(self, features, labels, epochs, N):
-        for epoch in trange(epochs):
+        for epoch in range(epochs):
             for x, y in zip(features, labels):
                 E = ((np.dot(x, self.w) + self.b) * y)[0]
                 E_ = (E < self.c).astype(float)
@@ -32,7 +32,7 @@ class Network(object):
         return loss <= 0
 
     def train(self, features, labels, epochs, N):
-        for epoch in trange(epochs):
+        for epoch in range(epochs):
             loss = 0.0
             E = ((np.dot(features, self.w) + self.b) * labels)
             E_ = (E < self.c).astype(float)
@@ -82,24 +82,24 @@ def main():
     # print(f"Features shape: {features.shape}")
     # print(f"Labels shape: {labels.shape}")
     alphas = np.arange(0.75, 3, 0.1)
-    runs = np.zeros_like(alphas)
-    for idx_alpha, alpha in enumerate(tqdm(alphas)):
-        success = []
-        for idx_n, N in enumerate(tqdm([20, 40, 60, 80, 100])):
-            for run in trange(nd):
+    for idx_n, N in enumerate(tqdm([20, 40, 60, 80, 100])):
+        runs = np.zeros_like(alphas)
+        for idx_alpha, alpha in enumerate(tqdm(alphas)):
+            success = []
+            for run in range(nd):
                 P = int(alpha*N)
                 features = np.random.randn(P,N)
                 # make random labels with 50/50 chance for a -1 or 1
                 labels = (np.random.randint(0,2,[P, 1])*2)-1
                 model = Network(N)
                 success.append(model.train(features, labels, epochs, N))
-        runs[idx_alpha] = np.mean(success)
-    print(runs)
-    plt.plot(alphas, runs)
+            runs[idx_alpha] = np.mean(success)
+        plt.plot(alphas, runs, label='N=' + str(N))
     plt.ylabel('success rate')
     plt.xlabel('alpha')
-    # plt.show()
+    plt.legend()
     plt.savefig('result.png')
+    # plt.show()
 
 if __name__ == "__main__":
     main()
