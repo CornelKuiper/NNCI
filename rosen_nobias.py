@@ -15,10 +15,10 @@ class Network(object):
         self.c = 0.0
         self.learning_rate = 0.1
         self.error = []
-        self.w = np.append(self.w, self.b)
+        # self.w = np.append(self.w, self.b)
 
     def train(self, features, labels, epochs, N):
-        features = np.insert(features,N,-1.0,axis=1)    
+        # features = np.insert(features,N,-1.0,axis=1)    
         for epoch in range(epochs):
             loss = 0.0
             for x, y in zip(features, labels):
@@ -91,7 +91,7 @@ def main():
             runs[idx_alpha] = np.mean(success)
         plt.plot(alphas, runs, label='N=' + str(N))
 
-    savename = str(epochs) + '_' + str(nd) + '_bias.png'
+    savename = str(epochs) + '_' + str(nd) + '.png'
     plt.ylabel('success rate')
     plt.xlabel('alpha')
     plt.legend()
