@@ -12,7 +12,7 @@ class Network(object):
         self.w_batch = np.zeros([N,1])
         self.w = np.zeros([1,N])
         self.b = 0.0
-        self.c = 0.2
+        self.c = 0.4
         self.error = []
         self.w = np.append(self.w, self.b)
         self.w_nobias = np.zeros([1,N])
@@ -120,7 +120,7 @@ def main():
             plt.plot(alphas, runs, label='N_nobias=' + str(N))
 
 
-    savename = str(epochs) + '_' + str(nd) + bias + '_c0.2' '.png'
+    savename = str(epochs) + '_' + str(nd) + bias + '_c04' '.png'
     plt.ylabel('success rate')
     plt.xlabel('alpha')
     plt.legend()
