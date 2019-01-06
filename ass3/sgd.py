@@ -1,8 +1,7 @@
 import numpy as np
-import sys
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
-from tqdm import trange, tqdm
+from tqdm import trange
 
 
 def tanh(x, deriv=False):
@@ -31,15 +30,13 @@ class Network(object):
         for layer in self.layers:
             layer.update(self.lr)
 
-
     def sgd(self, x, y, steps=1000):
         losses = []
-        for idx in range(steps):
+        for idx in trange(steps):
             sig = self.__call__(x)
             loss = y - sig
             self.back_prop(loss)
-            print(0.5 * np.mean(np.square(y - sig)))
-            losses.append(0.5 * np.mean(np.square(y - sig)))
+            losses.append(0.5 * np.mean(np.square(loss)))
             # self.lr *= 0.9**(idx/50)
         plt.plot(losses)
         plt.show()
@@ -54,10 +51,8 @@ class Dense(object):
             self.w /= np.sum(np.square(self.w), 0, keepdims=True)
         else:
             self.w = np.ones([inputs, units])
-        if activation is None:
-            self.activation = None
-        else:
-            self.activation = activation
+
+        self.activation = activation
         self.y = None
         self.x = None
         self.grad = None
@@ -89,27 +84,27 @@ class Dense(object):
             grad = np.matmul(np.transpose(self.x), self.grad)
             self.w += learning_rate * grad
 
+
 def shuffle_in_unison(a, b):
     rng_state = np.random.get_state()
     np.random.shuffle(a)
     np.random.set_state(rng_state)
     np.random.shuffle(b)
 
+
 def main():
     x = loadmat('data3.mat')
     xi = x['xi']
     tau = x['tau']
-    # xi = np.transpose(xi)
-    # tau = np.transpose(tau)
     xi = np.transpose(xi)
     tau = np.transpose(tau)
-    N = xi.shape[-1]
 
     shuffle_in_unison(xi, tau)
 
     model = Network([Dense(inputs=50, units=2, activation=tanh),
                      Dense(inputs=2, units=1, activation=None, trainable=False)])
     model.sgd(xi, tau)
+
 
 if __name__ == "__main__":
     main()
