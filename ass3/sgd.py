@@ -32,23 +32,15 @@ class Network(object):
             layer.update(self.lr)
 
 
-    def sgd(self, x, y, steps=2000):
+    def sgd(self, x, y, steps=1000):
         losses = []
-        # x = x[0:10]
-        # y = y[0:10]
-        # for x_, y_ in zip(x, y):
-        for idx in trange(steps):
+        for idx in range(steps):
             sig = self.__call__(x)
-            # print(sig.shape)
-            # print(y.shape)
-            # print(sig.shape, y.shape)
-            # loss = 0.5 * np.mean(np.square(sig - y))
-            loss = sig - y
-            # print(loss)
+            loss = y - sig
             self.back_prop(loss)
-            losses.append(0.5 * np.mean(np.square(sig - y)))
-            # self.lr *= 0.95**(idx/500)
-
+            print(0.5 * np.mean(np.square(y - sig)))
+            losses.append(0.5 * np.mean(np.square(y - sig)))
+            # self.lr *= 0.9**(idx/50)
         plt.plot(losses)
         plt.show()
 
@@ -58,10 +50,10 @@ class Dense(object):
                  trainable=True):
         self.trainable = trainable
         if self.trainable:
-            self.w = np.random.rand(1, inputs, units)
+            self.w = np.random.rand(inputs, units)
             self.w /= np.sum(np.square(self.w), 0, keepdims=True)
         else:
-            self.w = np.ones([1, inputs, units])
+            self.w = np.ones([inputs, units])
         if activation is None:
             self.activation = None
         else:
@@ -70,42 +62,38 @@ class Dense(object):
         self.x = None
         self.grad = None
 
+    def __call__(self, x):
+        self.x = x
+        self.y = np.matmul(self.x, self.w)
+        if self.activation is not None:
+            self.y = self.activation(self.y)
+        return self.y
+
     def __repr__(self):
         return f'Dense[shape:{self.w.shape}]'
 
-    def __call__(self, x):
-        self.x = x
-        # print('forward pass')
-        self.y = np.matmul(self.x, self.w)
-        # self.y = np.transpose(self.y, [1,0,2])
-        if self.activation is not None:
-            self.y = self.activation(self.y)
-
-        # print(self.x.shape, self.w.shape, self.y.shape)
-        return self.y
-
     def gradients(self, loss):
-        # print(self.__repr__)
-        batch_size = loss.shape[0]
-        loss = np.transpose(loss, [0,2,1])
         # print(f'backwards pass {self}')
-        self.w
         if self.activation is None:
-            # print(self.w.shape, loss.shape, self.y.shape)
-            self.grad = self.w * loss
+            self.grad = loss
         else:
-            # print(self.w.shape, loss.shape, self.y.shape)
-            self.grad = (self.w * loss) * self.activation(self.y, deriv=True)
-        # print(np.mean(self.grad, 0, keepdims=True).shape)
-        # self.grad = np.mean(self.grad, 0, keepdims=True)
-        # print(self.w.shape)
-        # print(self.y.shape)
-        # print(self.grad.shape)
-        return self.grad
+            self.grad = loss * self.activation(self.y, deriv=True)
+
+        grad = np.matmul(self.grad, np.transpose(self.w))
+
+        return grad
 
     def update(self, learning_rate=0.05):
+        # print(f'update pass {self}')
         if self.trainable:
-            self.w -= learning_rate * np.mean(self.grad * np.transpose(self.x, [0,2,1]), 0)
+            grad = np.matmul(np.transpose(self.x), self.grad)
+            self.w += learning_rate * grad
+
+def shuffle_in_unison(a, b):
+    rng_state = np.random.get_state()
+    np.random.shuffle(a)
+    np.random.set_state(rng_state)
+    np.random.shuffle(b)
 
 def main():
     x = loadmat('data3.mat')
@@ -113,9 +101,12 @@ def main():
     tau = x['tau']
     # xi = np.transpose(xi)
     # tau = np.transpose(tau)
-    xi = np.expand_dims(np.transpose(xi), 1)
-    tau = np.expand_dims(np.transpose(tau), 1)
+    xi = np.transpose(xi)
+    tau = np.transpose(tau)
     N = xi.shape[-1]
+
+    shuffle_in_unison(xi, tau)
+
     model = Network([Dense(inputs=50, units=2, activation=tanh),
                      Dense(inputs=2, units=1, activation=None, trainable=False)])
     model.sgd(xi, tau)
