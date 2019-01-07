@@ -30,17 +30,26 @@ class Network(object):
         for layer in self.layers:
             layer.update(self.lr)
 
-    def sgd(self, x, y, steps=1000):
+    def sgd(self, x, y, x_=None, y_=None, steps=1000):
         losses = []
+        losses_ = []
         for idx in trange(steps):
             sig = self.__call__(x)
             loss = y - sig
             self.back_prop(loss)
             losses.append(0.5 * np.mean(np.square(loss)))
+            if x_ is not None:
+                losses_.append(self.eval(x_, y_))
             # self.lr *= 0.9**(idx/50)
-        plt.plot(losses)
+        if x_ is not None:
+            plt.plot(np.arange(steps),losses,'r', np.arange(steps),losses_,'b')
+        else:
+            plt.plot(losses)
         plt.show()
 
+    def eval(self, x, y):
+        sig = self.__call__(x)
+        return 0.5 * np.mean(np.square(y - sig))
 
 class Dense(object):
     def __init__(self, inputs=50, units=2, activation=tanh,
@@ -64,8 +73,8 @@ class Dense(object):
             self.y = self.activation(self.y)
         return self.y
 
-    def __repr__(self):
-        return f'Dense[shape:{self.w.shape}]'
+    # def __repr__(self):
+    #     return f'Dense[shape:{self.w.shape}]'
 
     def gradients(self, loss):
         # print(f'backwards pass {self}')
@@ -99,11 +108,18 @@ def main():
     xi = np.transpose(xi)
     tau = np.transpose(tau)
 
+    shuffle_in_unison(xi,tau)
+
+    xi_train = xi[:4500] 
+    tau_train = tau[:4500]
+    xi_test = xi[4500:]
+    tau_test = tau[4500:]
+
     shuffle_in_unison(xi, tau)
 
     model = Network([Dense(inputs=50, units=2, activation=tanh),
                      Dense(inputs=2, units=1, activation=None, trainable=False)])
-    model.sgd(xi, tau)
+    model.sgd(xi_train, tau_train, xi_test, tau_test)
 
 
 if __name__ == "__main__":
