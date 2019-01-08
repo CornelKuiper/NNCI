@@ -15,7 +15,7 @@ class Network(object):
         self.layers = layers
         print(self.layers)
 
-        self.lr = 0.005
+        self.lr = 0.05
 
     def __call__(self, x):
         for layer in self.layers:
@@ -30,32 +30,37 @@ class Network(object):
         for layer in self.layers:
             layer.update(self.lr)
 
-    def sgd(self, X, Y, X_=None, Y_=None, steps=500):
+    def sgd(self, X, Y, X_=None, Y_=None, steps=500, batch=True):
         losses = []
         losses_ = []
-        X = np.expand_dims(X, 1)
-        Y = np.expand_dims(Y, 1)
+        if not batch:
+            X = np.expand_dims(X, 1)
+            Y = np.expand_dims(Y, 1)
         for idx in trange(steps):
-            step_loss = []
             shuffle_in_unison(X, Y)
-            for x, y in zip(X, Y):
-                sig = self.__call__(x)
-                loss = sig - x
-                self.back_prop(loss)
-                step_loss.append(loss)
-            losses.append(0.5 * np.mean(np.square(step_loss)))
+            if not batch:
+                step_loss = []
+                for x, y in zip(X, Y):
+                    loss = self.train(x, y)
+                    step_loss.append(loss)
+                losses.append(0.5 * np.mean(np.square(step_loss)))
+            else:
+                loss = self.train(X, Y)
+                losses.append(0.5 * np.mean(np.square(loss)))
             if X_ is not None:
                 losses_.append(self.eval(X_, Y_))
             # self.lr *= 0.9**(idx/50)
-        if X_ is not None:
-            plt.plot(np.arange(steps), losses, 'r', np.arange(steps), losses_, 'b')
-        else:
-            plt.plot(losses)
-        plt.show()
+        return losses, losses_
 
     def eval(self, x, y):
         sig = self.__call__(x)
         return 0.5 * np.mean(np.square(y - sig))
+
+    def train(self, x, y):
+        sig = self.__call__(x)
+        loss = sig - y
+        self.back_prop(loss)
+        return loss
 
 
 class Dense(object):
@@ -77,7 +82,7 @@ class Dense(object):
         self.x = x
         self.y = np.matmul(self.x, self.w)
         if self.activation is not None:
-            self.y = self.activation(self.y)
+            return self.activation(self.y)
         return self.y
 
     # def __repr__(self):
@@ -109,15 +114,16 @@ def shuffle_in_unison(a, b):
 
 
 def main():
+    steps = 500
     x = loadmat('data3.mat')
     xi = x['xi']
     tau = x['tau']
     xi = np.transpose(xi)
     tau = np.transpose(tau)
 
-    shuffle_in_unison(xi,tau)
+    shuffle_in_unison(xi, tau)
 
-    xi_train = xi[:4500] 
+    xi_train = xi[:4500]
     tau_train = tau[:4500]
     xi_test = xi[4500:]
     tau_test = tau[4500:]
@@ -126,7 +132,30 @@ def main():
 
     model = Network([Dense(inputs=50, units=2, activation=tanh),
                      Dense(inputs=2, units=1, activation=None, trainable=False)])
-    model.sgd(xi_train, tau_train, xi_test, tau_test)
+    losses_train, losses_test = model.sgd(
+        xi_train, tau_train, xi_test, tau_test, steps=steps, batch=False)
+
+    plt.figure(1)
+    plt.plot(np.arange(steps), losses_train, label='train')
+    plt.plot(np.arange(steps), losses_test, label='test')
+    plt.title('loss')
+    plt.xlabel('iteration')
+    plt.ylabel('loss')
+    plt.legend()
+    plt.show()
+
+    plt.figure(2)
+    plt.subplot(1, 2, 1)
+    plt.bar(np.arange(50), model.layers[0].w[:, 0])
+    plt.title('w_1')
+    plt.xlabel('weight')
+    plt.ylabel('weight value')
+    plt.subplot(1, 2, 2)
+    plt.bar(np.arange(50), model.layers[0].w[:, 1])
+    plt.title('w_2')
+    plt.xlabel('weight')
+    plt.ylabel('weight value')
+    plt.show()
 
 
 if __name__ == "__main__":
