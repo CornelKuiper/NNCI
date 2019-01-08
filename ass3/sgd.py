@@ -15,7 +15,7 @@ class Network(object):
         self.layers = layers
         print(self.layers)
 
-        self.lr = 0.05
+        self.lr = 0.005
 
     def __call__(self, x):
         for layer in self.layers:
@@ -40,10 +40,14 @@ class Network(object):
             shuffle_in_unison(X, Y)
             if not batch:
                 step_loss = []
-                for x, y in zip(X, Y):
+                # for x, y in zip(X, Y):
+                # for idx in range(100):
+                for idx in range(X.shape[0]):
+                    idx_ = np.random.randint(0,X.shape[0])
+                    x = X[idx_]
+                    y = Y[idx_]
                     loss = self.train(x, y)
-                    step_loss.append(loss)
-                losses.append(0.5 * np.mean(np.square(step_loss)))
+                losses.append(self.eval(X, Y))
             else:
                 loss = self.train(X, Y)
                 losses.append(0.5 * np.mean(np.square(loss)))
@@ -55,7 +59,7 @@ class Network(object):
 
     def eval(self, x, y):
         sig = self.__call__(x)
-        return 0.5 * np.mean(np.square(y - sig))
+        return 0.5 * np.mean(np.square(sig - y))
 
     def train(self, x, y):
         sig = self.__call__(x)
@@ -124,10 +128,10 @@ def main():
 
     shuffle_in_unison(xi, tau)
 
-    xi_train = xi[:4500]
-    tau_train = tau[:4500]
-    xi_test = xi[4500:]
-    tau_test = tau[4500:]
+    xi_train = xi[:100]
+    tau_train = tau[:100]
+    xi_test = xi[4900:]
+    tau_test = tau[4900:]
     print(np.max(tau),np.min(tau),np.mean(tau),np.median(tau))
 
     shuffle_in_unison(xi_train, tau_train)
