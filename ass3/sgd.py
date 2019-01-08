@@ -15,7 +15,7 @@ class Network(object):
         self.layers = layers
         print(self.layers)
 
-        self.lr = 0.05
+        self.lr = 0.005
 
     def __call__(self, x):
         for layer in self.layers:
@@ -30,19 +30,25 @@ class Network(object):
         for layer in self.layers:
             layer.update(self.lr)
 
-    def sgd(self, x, y, x_=None, y_=None, steps=1000):
+    def sgd(self, X, Y, X_=None, Y_=None, steps=500):
         losses = []
         losses_ = []
+        X = np.expand_dims(X, 1)
+        Y = np.expand_dims(Y, 1)
         for idx in trange(steps):
-            sig = self.__call__(x)
-            loss = y - sig
-            self.back_prop(loss)
-            losses.append(0.5 * np.mean(np.square(loss)))
-            if x_ is not None:
-                losses_.append(self.eval(x_, y_))
+            step_loss = []
+            shuffle_in_unison(X, Y)
+            for x, y in zip(X, Y):
+                sig = self.__call__(x)
+                loss = sig - x
+                self.back_prop(loss)
+                step_loss.append(loss)
+            losses.append(0.5 * np.mean(np.square(step_loss)))
+            if X_ is not None:
+                losses_.append(self.eval(X_, Y_))
             # self.lr *= 0.9**(idx/50)
-        if x_ is not None:
-            plt.plot(np.arange(steps),losses,'r', np.arange(steps),losses_,'b')
+        if X_ is not None:
+            plt.plot(np.arange(steps), losses, 'r', np.arange(steps), losses_, 'b')
         else:
             plt.plot(losses)
         plt.show()
@@ -50,6 +56,7 @@ class Network(object):
     def eval(self, x, y):
         sig = self.__call__(x)
         return 0.5 * np.mean(np.square(y - sig))
+
 
 class Dense(object):
     def __init__(self, inputs=50, units=2, activation=tanh,
@@ -91,7 +98,7 @@ class Dense(object):
         # print(f'update pass {self}')
         if self.trainable:
             grad = np.matmul(np.transpose(self.x), self.grad)
-            self.w += learning_rate * grad
+            self.w -= learning_rate * grad
 
 
 def shuffle_in_unison(a, b):
@@ -115,7 +122,7 @@ def main():
     xi_test = xi[4500:]
     tau_test = tau[4500:]
 
-    shuffle_in_unison(xi, tau)
+    shuffle_in_unison(xi_train, tau_train)
 
     model = Network([Dense(inputs=50, units=2, activation=tanh),
                      Dense(inputs=2, units=1, activation=None, trainable=False)])
