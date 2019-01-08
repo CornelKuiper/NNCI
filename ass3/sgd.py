@@ -50,6 +50,7 @@ class Network(object):
             if X_ is not None:
                 losses_.append(self.eval(X_, Y_))
             # self.lr *= 0.9**(idx/50)
+        print(losses[0], losses_[0])
         return losses, losses_
 
     def eval(self, x, y):
@@ -114,7 +115,7 @@ def shuffle_in_unison(a, b):
 
 
 def main():
-    steps = 500
+    steps = 100
     x = loadmat('data3.mat')
     xi = x['xi']
     tau = x['tau']
@@ -127,6 +128,7 @@ def main():
     tau_train = tau[:4500]
     xi_test = xi[4500:]
     tau_test = tau[4500:]
+    print(np.max(tau),np.min(tau),np.mean(tau),np.median(tau))
 
     shuffle_in_unison(xi_train, tau_train)
 
