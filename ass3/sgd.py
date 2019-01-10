@@ -73,12 +73,10 @@ class Dense(object):
             self.grad = loss
         else:
             self.grad = loss * self.activation(self.y, deriv=True)
-
         grad = np.matmul(self.grad, np.transpose(self.w))
-
         return grad
 
-    def update(self, learning_rate=0.05):
+    def update(self, learning_rate):
         # print(f'update pass {self}')
         if self.trainable:
             grad = np.matmul(np.transpose(self.x), self.grad)
