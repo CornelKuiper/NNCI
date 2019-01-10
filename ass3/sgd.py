@@ -15,7 +15,7 @@ class Network(object):
         self.layers = layers
         print(self.layers)
 
-        self.lr = 0.05
+        self.lr = 0.005
 
     def __call__(self, x):
         for layer in self.layers:
@@ -30,16 +30,42 @@ class Network(object):
         for layer in self.layers:
             layer.update(self.lr)
 
-    def sgd(self, x, y, steps=1000):
+    def sgd(self, X, Y, X_=None, Y_=None, steps=500, batch=True):
         losses = []
+        losses_ = []
+        if not batch:
+            X = np.expand_dims(X, 1)
+            Y = np.expand_dims(Y, 1)
         for idx in trange(steps):
-            sig = self.__call__(x)
-            loss = y - sig
-            self.back_prop(loss)
-            losses.append(0.5 * np.mean(np.square(loss)))
+            shuffle_in_unison(X, Y)
+            if not batch:
+                step_loss = []
+                # for x, y in zip(X, Y):
+                # for idx in range(100):
+                for idx in range(X.shape[0]):
+                    idx_ = np.random.randint(0,X.shape[0])
+                    x = X[idx_]
+                    y = Y[idx_]
+                    loss = self.train(x, y)
+                losses.append(self.eval(X, Y))
+            else:
+                loss = self.train(X, Y)
+                losses.append(0.5 * np.mean(np.square(loss)))
+            if X_ is not None:
+                losses_.append(self.eval(X_, Y_))
             # self.lr *= 0.9**(idx/50)
-        plt.plot(losses)
-        plt.show()
+        print(losses[0], losses_[0])
+        return losses, losses_
+
+    def eval(self, x, y):
+        sig = self.__call__(x)
+        return 0.5 * np.mean(np.square(sig - y))
+
+    def train(self, x, y):
+        sig = self.__call__(x)
+        loss = sig - y
+        self.back_prop(loss)
+        return loss
 
 
 class Dense(object):
@@ -61,11 +87,11 @@ class Dense(object):
         self.x = x
         self.y = np.matmul(self.x, self.w)
         if self.activation is not None:
-            self.y = self.activation(self.y)
+            return self.activation(self.y)
         return self.y
 
-    def __repr__(self):
-        return f'Dense[shape:{self.w.shape}]'
+    # def __repr__(self):
+    #     return f'Dense[shape:{self.w.shape}]'
 
     def gradients(self, loss):
         # print(f'backwards pass {self}')
@@ -80,7 +106,7 @@ class Dense(object):
         # print(f'update pass {self}')
         if self.trainable:
             grad = np.matmul(np.transpose(self.x), self.grad)
-            self.w += learning_rate * grad
+            self.w -= learning_rate * grad
 
 
 def shuffle_in_unison(a, b):
@@ -91,6 +117,7 @@ def shuffle_in_unison(a, b):
 
 
 def main():
+    steps = 100
     x = loadmat('data3.mat')
     xi = x['xi']
     tau = x['tau']
@@ -99,9 +126,40 @@ def main():
 
     shuffle_in_unison(xi, tau)
 
+    xi_train = xi[:100]
+    tau_train = tau[:100]
+    xi_test = xi[4900:]
+    tau_test = tau[4900:]
+    print(np.max(tau),np.min(tau),np.mean(tau),np.median(tau))
+
+    shuffle_in_unison(xi_train, tau_train)
+
     model = Network([Dense(inputs=50, units=2, activation=tanh),
                      Dense(inputs=2, units=1, activation=None, trainable=False)])
-    model.sgd(xi, tau)
+    losses_train, losses_test = model.sgd(
+        xi_train, tau_train, xi_test, tau_test, steps=steps, batch=False)
+
+    plt.figure(1)
+    plt.plot(np.arange(steps), losses_train, label='train')
+    plt.plot(np.arange(steps), losses_test, label='test')
+    plt.title('loss')
+    plt.xlabel('iteration')
+    plt.ylabel('loss')
+    plt.legend()
+    plt.show()
+
+    plt.figure(2)
+    plt.subplot(1, 2, 1)
+    plt.bar(np.arange(50), model.layers[0].w[:, 0])
+    plt.title('w_1')
+    plt.xlabel('weight')
+    plt.ylabel('weight value')
+    plt.subplot(1, 2, 2)
+    plt.bar(np.arange(50), model.layers[0].w[:, 1])
+    plt.title('w_2')
+    plt.xlabel('weight')
+    plt.ylabel('weight value')
+    plt.show()
 
 
 if __name__ == "__main__":
