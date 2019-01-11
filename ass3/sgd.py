@@ -15,7 +15,7 @@ class Network(object):
         self.layers = layers
         print(self.layers)
 
-        self.lr = 0.005
+        self.lr = 0.05
 
     def __call__(self, x):
         for layer in self.layers:
@@ -33,6 +33,7 @@ class Network(object):
     def sgd(self, X, Y, X_=None, Y_=None, steps=500, batch=True):
         losses = []
         losses_ = []
+        flag = False
         if not batch:
             X = np.expand_dims(X, 1)
             Y = np.expand_dims(Y, 1)
@@ -42,17 +43,24 @@ class Network(object):
                 step_loss = []
                 # for x, y in zip(X, Y):
                 # for idx in range(100):
-                for idx in range(X.shape[0]):
+                for idx_ in range(X.shape[0]):
                     idx_ = np.random.randint(0,X.shape[0])
                     x = X[idx_]
                     y = Y[idx_]
                     loss = self.train(x, y)
-                losses.append(self.eval(X, Y))
+                loss = self.eval(X, Y)
+                losses.append(loss)
             else:
-                loss = self.train(X, Y)
-                losses.append(0.5 * np.mean(np.square(loss)))
+                loss = 0.5 * np.mean(np.square(self.train(X, Y)))
+                losses.append(loss)
             if X_ is not None:
                 losses_.append(self.eval(X_, Y_))
+            if idx > 10 and np.mean([curr_loss - losses[-1] for curr_loss in losses[idx-10:idx]])<(loss/5):
+                flag += 1
+                if flag == 10:
+                    break
+            else:
+                flag = 0
             # self.lr *= 0.9**(idx/50)
         print(losses[0], losses_[0])
         return losses, losses_
@@ -139,9 +147,11 @@ def main():
     losses_train, losses_test = model.sgd(
         xi_train, tau_train, xi_test, tau_test, steps=steps, batch=False)
 
+
+    length = len(losses_train)
     plt.figure(1)
-    plt.plot(np.arange(steps), losses_train, label='train')
-    plt.plot(np.arange(steps), losses_test, label='test')
+    plt.plot(np.arange(length), losses_train, label='train')
+    plt.plot(np.arange(length), losses_test, label='test')
     plt.title('loss')
     plt.xlabel('iteration')
     plt.ylabel('loss')
